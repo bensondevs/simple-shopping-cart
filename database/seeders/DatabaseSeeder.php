@@ -23,12 +23,6 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@example.com',
         ]);
 
-        // Create admin user for notifications
-        User::factory()->withoutTwoFactor()->create([
-            'name' => 'Admin User',
-            'email' => 'admin@example.com',
-        ]);
-
         Product::factory()->count(10)->create();
     }
 }

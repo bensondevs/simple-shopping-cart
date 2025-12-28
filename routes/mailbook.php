@@ -9,8 +9,6 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Xammie\Mailbook\Facades\Mailbook;
 
-Mailbook::add(MailbookMail::class);
-
 // Daily Sales Report Notification Preview
 Mailbook::add(function () {
     $today = Carbon::today();
