@@ -6,6 +6,9 @@ A Laravel-based e-commerce shopping cart application with automated background j
 
 This application implements a complete shopping cart system with real-time inventory management, automated low stock notifications, and daily sales reporting. The system uses Laravel's event-driven architecture, queue system, and scheduled tasks to handle background operations efficiently.
 
+## Time Taken
+This task was taking approximately **6 hours** to complete.
+
 ## Cart System
 
 ### Core Functionality
