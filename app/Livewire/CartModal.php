@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Actions\Cart\Checkout;
 use App\Livewire\Concerns\ManagesCart;
 use App\Models\UserProduct;
 use App\Support\Cart;
@@ -46,16 +47,11 @@ class CartModal extends Component
     #[Renderless]
     public function updateQuantity(int $item, int $quantity): void
     {
-        $userProduct = UserProduct::find($item);
+        $userProduct = UserProduct::query()
+            ->whereBelongsTo(auth()->user())
+            ->find($item);
 
-        if (! $userProduct || $userProduct->user_id !== Auth::id()) {
-            return;
-        }
-
-        if ($quantity <= 0) {
-            $userProduct->delete();
-            $this->cart()->refresh();
-            $this->dispatch('cart-updated');
+        if (! $userProduct instanceof UserProduct) {
             return;
         }
 
@@ -68,9 +64,11 @@ class CartModal extends Component
     #[Renderless]
     public function removeItem(int $item): void
     {
-        $userProduct = UserProduct::find($item);
+        $userProduct = UserProduct::query()
+            ->whereBelongsTo(auth()->user())
+            ->find($item);
 
-        if (! $userProduct || $userProduct->user_id !== Auth::id()) {
+        if (! $userProduct instanceof UserProduct) {
             return;
         }
 
@@ -79,6 +77,14 @@ class CartModal extends Component
         $this->cart()->refresh();
 
         $this->dispatch('cart-updated');
+    }
+
+    public function checkout(): void
+    {
+        $order = app(Checkout::class)(Auth::user());
+
+        $this->dispatch('order-created');
+        $this->redirect(route('orders', ['order' => $order->id]), navigate: true);
     }
 }
 

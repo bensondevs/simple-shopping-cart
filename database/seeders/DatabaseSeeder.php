@@ -18,6 +18,16 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+        User::factory()->withoutTwoFactor()->create([
+            'name' => 'Dummy Administrator User',
+            'email' => 'admin@example.com',
+        ]);
+
+        // Create admin user for notifications
+        User::factory()->withoutTwoFactor()->create([
+            'name' => 'Admin User',
+            'email' => 'admin@example.com',
+        ]);
 
         Product::factory()->count(10)->create();
     }

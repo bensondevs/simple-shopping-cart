@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\ListOrders;
 use App\Livewire\ListProducts;
 use App\Livewire\Settings\Appearance;
 use App\Livewire\Settings\Password;
@@ -19,6 +20,10 @@ Route::view('dashboard', 'dashboard')
 Route::get('products', ListProducts::class)
     ->middleware(['auth', 'verified'])
     ->name('products');
+
+Route::get('orders', ListOrders::class)
+    ->middleware(['auth', 'verified'])
+    ->name('orders');
 
 Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', 'settings/profile');

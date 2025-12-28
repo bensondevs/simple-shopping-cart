@@ -1,4 +1,16 @@
-<flux:modal flyout variant="floating" name="cart-modal" class="max-w-2xl flex flex-col">
+<flux:modal 
+    flyout 
+    variant="floating" 
+    name="cart-modal" 
+    class="max-w-2xl flex flex-col"
+    x-data="{}"
+    @close-modal.window="
+        const modalName = Array.isArray($event.detail) ? $event.detail[0] : $event.detail;
+        if (modalName === 'cart-modal') {
+            $dispatch('close-modal', 'cart-modal');
+        }
+    "
+>
     <div class="mb-6">
         <flux:heading size="lg">{{ __('Shopping Cart') }}</flux:heading>
         <flux:subheading>{{ __('Review and manage your cart items') }}</flux:subheading>
@@ -13,118 +25,42 @@
                     </flux:text>
                 </div>
             @else
-                <div class="space-y-4" 
-                     x-data="{
-                         total: {{ $this->total }},
-                         formatPrice(amount) {
-                             return (amount / 100).toFixed(2);
-                         },
-                         calculateTotal() {
-                             let sum = 0;
-                             const items = this.$el.querySelectorAll('[data-item-total]');
-                             items.forEach(itemEl => {
-                                 const itemData = itemEl.__x?.$data;
-                                 if (itemData) {
-                                     if (!itemData.removed && itemEl.style.display !== 'none') {
-                                         sum += (itemData.quantity || 0) * (itemData.price || 0);
-                                     }
-                                 } else {
-                                     // Fallback to data attributes if Alpine not initialized yet
-                                     const quantity = parseFloat(itemEl.getAttribute('data-quantity') || 0);
-                                     const price = parseFloat(itemEl.getAttribute('data-price') || 0);
-                                     if (itemEl.style.display !== 'none') {
-                                         sum += quantity * price;
-                                     }
-                                 }
-                             });
-                             this.total = sum;
-                             return sum;
-                         }
-                     }"
-                     x-init="
-                         const updateTotal = () => {
-                             setTimeout(() => calculateTotal(), 10);
-                         };
-                         updateTotal();
-                         
-                         // Watch for quantity changes in items
-                         const watchItems = () => {
-                             this.$el.querySelectorAll('[data-item-total]').forEach(itemEl => {
-                                 const itemData = itemEl.__x?.$data;
-                                 if (itemData && !itemEl._totalWatcher) {
-                                     itemEl._totalWatcher = true;
-                                     this.$watch(() => itemData.quantity, () => updateTotal());
-                                 }
-                             });
-                         };
-                         
-                         setTimeout(watchItems, 100);
-                         $watch('$el.querySelectorAll(\'[data-item-total]\').length', () => {
-                             setTimeout(watchItems, 100);
-                             updateTotal();
-                         });
-                     "
-                     @quantity-changed.window="calculateTotal()"
-                     @remove-item.window="setTimeout(() => calculateTotal(), 150)">
+                <div class="space-y-4">
                     @foreach ($this->items as $item)
                         <div 
-                            :wire:key="$item->getKey()" 
-                            data-item-total
-                            data-quantity="{{ $item->quantity }}"
-                            data-price="{{ $item->product->price }}"
-                            x-data="{ 
-                                quantity: {{ $item->quantity }}, 
-                                price: {{ $item->product->price }},
-                                removed: false,
-                                formatPrice(amount) {
-                                    return (amount / 100).toFixed(2);
-                                },
-                                updateQuantity(newQuantity) {
-                                    if (newQuantity <= 0) {
-                                        this.remove();
-                                        return;
-                                    }
-                                    this.quantity = Math.max(1, Math.min(newQuantity, {{ $item->product->stock_quantity }}));
-                                    this.$el.setAttribute('data-quantity', this.quantity);
-                                    $dispatch('quantity-changed');
-                                    $dispatch('update-item-quantity', { item: {{ $item->getKey() }}, quantity: this.quantity });
-                                },
-                                increment() {
-                                    if (this.quantity < {{ $item->product->stock_quantity }}) {
-                                        this.updateQuantity(this.quantity + 1);
-                                    }
-                                },
-                                decrement() {
-                                    if (this.quantity <= 1) {
-                                        this.remove();
-                                    } else {
-                                        this.updateQuantity(this.quantity - 1);
-                                    }
-                                },
-                                remove() {
-                                    this.removed = true;
-                                    $dispatch('remove-item', { item: {{ $item->getKey() }} });
-                                }
-                            }"
-                            x-show="!removed"
-                            x-transition
+                            wire:key="item-{{ $item->getKey() }}"
                             class="flex flex-col items-start justify-between gap-4 p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg"
                         >
                             <div class="flex flex-row justify-between w-full">
                                 <div class="flex-1 min-w-0">
                                     <flux:text class="font-semibold truncate">{{ $item->product->name }}</flux:text>
                                     <flux:text class="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-                                        $<span x-text="formatPrice(price)"></span> × <span x-text="quantity"></span>
+                                        ${{ number_format($item->product->price, 2) }} × {{ $item->quantity }}
                                     </flux:text>
                                     <flux:text class="text-sm font-semibold text-accent mt-1">
-                                        $<span x-text="formatPrice(quantity * price)"></span>
+                                        ${{ number_format($item->product->price * $item->quantity, 2) }}
                                     </flux:text>
+                                    @if($item->quantity > $item->product->stock_quantity)
+                                        <div class="mt-1 flex items-center gap-2">
+                                            <flux:text class="text-sm text-red-600 dark:text-red-400">
+                                                {{ __('Stock limit reached. Only :stock available.', ['stock' => $item->product->stock_quantity]) }}
+                                            </flux:text>
+                                            <flux:button
+                                                variant="ghost"
+                                                size="xs"
+                                                wire:click="updateQuantityDirectly({{ $item->getKey() }}, {{ $item->product->stock_quantity }})"
+                                                class="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 h-auto py-0.5 px-2 text-xs"
+                                            >
+                                                {{ __('Reset to :stock', ['stock' => $item->product->stock_quantity]) }}
+                                            </flux:button>
+                                        </div>
+                                    @endif
                                 </div>
 
                                 <flux:button
                                     variant="ghost"
                                     size="sm"
-                                    x-on:click="remove()"
+                                    wire:click="removeItem({{ $item->getKey() }})"
                                     class="h-8 w-8 p-0 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                                 >
                                     <flux:icon.x-mark class="size-4"/>
@@ -143,13 +79,12 @@
                         </div>
                     @endforeach
 
-                    <div
-                        class="flex items-center justify-between gap-4 p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                    <div class="flex items-center justify-between gap-4 p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg">
                         <flux:text class="text-lg font-semibold">
                             {{ __('Total') }}
                         </flux:text>
                         <flux:text class="text-2xl font-bold text-accent">
-                            $<span x-text="formatPrice(total)"></span>
+                            ${{ number_format($this->total, 2) }}
                         </flux:text>
                     </div>
                 </div>
@@ -157,12 +92,38 @@
         </div>
 
         <div class="flex-shrink-0 pt-4">
-            <div class="flex justify-end gap-2">
-                <flux:modal.close>
-                    <flux:button variant="filled">{{ __('Close') }}</flux:button>
+            <div class="flex flex-row gap-2 w-full">
+                @if (!$this->items->isEmpty())
+                    <flux:button
+                        variant="primary"
+                        wire:click="checkout"
+                        wire:loading.attr="disabled"
+                        class="flex-1"
+                    >
+                        <span wire:loading.remove wire:target="checkout">
+                            {{ __('Checkout') }}
+                        </span>
+                        <span wire:loading wire:target="checkout">
+                            {{ __('Processing...') }}
+                        </span>
+                    </flux:button>
+                @endif
+                <flux:modal.close class="flex-1 w-full">
+                    <flux:button variant="filled" class="w-full">{{ __('Close') }}</flux:button>
                 </flux:modal.close>
             </div>
         </div>
     </div>
 </flux:modal>
+
+<script>
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('close-modal', (data) => {
+            const modalName = Array.isArray(data) ? data[0] : data;
+            if (modalName === 'cart-modal') {
+                window.dispatchEvent(new CustomEvent('close-modal', { detail: 'cart-modal' }));
+            }
+        });
+    });
+</script>
 

@@ -17,12 +17,16 @@
                           wire:navigate>
             {{ __('Products') }}
         </flux:navbar.item>
+        <flux:navbar.item icon="clipboard-document-list" :href="route('orders')" :current="request()->routeIs('orders')"
+                          wire:navigate>
+            {{ __('Orders') }}
+        </flux:navbar.item>
     </flux:navbar>
 
     <flux:spacer/>
 
     <flux:navbar class="me-1.5 space-x-0.5 rtl:space-x-reverse py-0!">
-        <livewire:cart-icon />
+        <livewire:cart-icon/>
     </flux:navbar>
 
     <!-- Desktop User Menu -->
@@ -82,9 +86,22 @@
 
     <flux:navlist variant="outline">
         <flux:navlist.group :heading="__('Shopping')">
-            <flux:navlist.item icon="shopping-bag" :href="route('products')" :current="request()->routeIs('products')"
-                               wire:navigate>
+            <flux:navlist.item
+                icon="shopping-bag"
+                :href="route('products')"
+                :current="request()->routeIs('products')"
+                wire:navigate
+            >
                 {{ __('Products') }}
+            </flux:navlist.item>
+            <flux:navlist.item
+                icon="clipboard-document-list"
+                :badge="\App\Models\Order::query()->whereBelongsTo(auth()->user())->where('status', \App\Enums\OrderStatus::Pending)->count()"
+                :href="route('orders')"
+                :current="request()->routeIs('orders')"
+                wire:navigate
+            >
+                {{ __('Orders') }}
             </flux:navlist.item>
         </flux:navlist.group>
     </flux:navlist>
@@ -107,6 +124,84 @@
 </div>
 
 <livewire:cart-modal/>
+
+<!-- Toast Notification -->
+<div
+    x-data="{
+        show: false,
+        message: '',
+        type: 'success',
+        timeout: null,
+        showToast(event) {
+            const detail = event.detail[0] || event.detail || {};
+            this.message = detail.message || '';
+            this.type = detail.type || 'success';
+            // Delay showing toast to ensure modal closes first
+            setTimeout(() => {
+                this.show = true;
+                clearTimeout(this.timeout);
+                this.timeout = setTimeout(() => {
+                    this.show = false;
+                }, 5000);
+            }, 300);
+        }
+    }"
+    @toast.window="showToast($event)"
+    x-show="show"
+    x-transition:enter="transition ease-out duration-300"
+    x-transition:enter-start="opacity-0 translate-y-2"
+    x-transition:enter-end="opacity-100 translate-y-0"
+    x-transition:leave="transition ease-in duration-200"
+    x-transition:leave-start="opacity-100 translate-y-0"
+    x-transition:leave-end="opacity-0 translate-y-2"
+    class="fixed top-4 right-4 z-50 max-w-md"
+    style="display: none;"
+>
+    <div
+        class="rounded-lg border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 p-4 shadow-lg"
+    >
+        <div class="flex items-center gap-3">
+            <div
+                :class="{
+                    'text-green-600 dark:text-green-400': type === 'success',
+                    'text-red-600 dark:text-red-400': type === 'error'
+                }"
+            >
+                <svg
+                    x-show="type === 'success'"
+                    class="size-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                >
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <svg
+                    x-show="type === 'error'"
+                    class="size-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke-width="1.5"
+                    stroke="currentColor"
+                >
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <flux:text class="font-medium text-zinc-900 dark:text-zinc-100" x-text="message"></flux:text>
+            </div>
+            <button
+                @click="show = false"
+                class="text-zinc-600 dark:text-zinc-400 opacity-70 hover:opacity-100"
+            >
+                <flux:icon.x-mark class="size-4"/>
+            </button>
+        </div>
+    </div>
+</div>
 
 @fluxScripts
 </body>

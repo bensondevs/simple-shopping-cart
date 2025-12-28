@@ -2,6 +2,11 @@
 
 namespace App\Providers;
 
+use App\Events\ProductStockLow;
+use App\Listeners\SendLowStockNotification;
+use App\Models\Product;
+use App\Observers\ProductObserver;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -19,6 +24,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Register event listener
+        Event::listen(
+            ProductStockLow::class,
+            SendLowStockNotification::class
+        );
+
+        // Register observer
+        Product::observe(ProductObserver::class);
     }
 }

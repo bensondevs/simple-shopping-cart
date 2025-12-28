@@ -8,24 +8,25 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('user_products', function (Blueprint $table) {
+        Schema::create('order_products', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')
+            $table->foreignId('order_id')
                 ->constrained()
                 ->onDelete('cascade');
             $table->foreignId('product_id')
+                ->nullable()
                 ->constrained()
-                ->onDelete('cascade');
-            $table->integer('quantity')->default(1);
+                ->onDelete('set null');
+            $table->string('name');
+            $table->integer('quantity');
+            $table->unsignedBigInteger('price');
+            
             $table->timestamps();
-
-            $table->index('user_id');
-            $table->index('product_id');
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('user_products');
+        Schema::dropIfExists('order_products');
     }
 };
